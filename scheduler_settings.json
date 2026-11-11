@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "updated": "2026-11-11",
+  "note": "Shared settings for the Scheduler Check. Techs are matched by first name (or full name). A tech listed here is checked unless include is false. rule is std, short, ext or custom (custom needs a custom block). practiceHours is the biomethods practice required per day. Edit this file on GitHub and everyone gets the change.",
+  "presets": {
+    "std": {
+      "amBreak": true,
+      "pmBreak": true,
+      "peel": true,
+      "lunchBlock": true,
+      "maxHours": 8,
+      "extBreaks": false,
+      "maxContinuous": 0
+    },
+    "short": {
+      "amBreak": true,
+      "pmBreak": false,
+      "peel": false,
+      "lunchBlock": false,
+      "maxHours": 5,
+      "extBreaks": false,
+      "maxContinuous": 0
+    },
+    "ext": {
+      "amBreak": true,
+      "pmBreak": true,
+      "peel": true,
+      "lunchBlock": true,
+      "maxHours": 8,
+      "extBreaks": true,
+      "maxContinuous": 3
+    }
+  },
+  "techs": {
+    "ben": {},
+    "simranjot": {},
+    "sheng": {},
+    "sophie": {},
+    "pranali": {},
+    "cassandra": {
+      "rule": "ext"
+    },
+    "jenna": {},
+    "camille": {},
+    "maria": {
+      "practiceHours": 1,
+      "rule": "short"
+    },
+    "cassidy": {},
+    "breanna": {
+      "practiceHours": 2
+    },
+    "deanna": {
+      "practiceHours": 2
+    },
+    "chinarose": {
+      "practiceHours": 1.25
+    },
+    "diana": {
+      "practiceHours": 2
+    },
+    "andrea": {
+      "practiceHours": 2
+    },
+    "abbi": {
+      "practiceHours": 2
+    },
+    "citlali": {
+      "practiceHours": 2
+    }
+  }
+}
