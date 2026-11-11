@@ -142,6 +142,14 @@ body.dragging,body.dragging *{cursor:grabbing!important}
 #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#1d2330;color:#fff;padding:10px 16px;border-radius:10px;z-index:100;box-shadow:var(--shadow);max-width:90vw}
 
 .print-only{display:none}
+.notice{position:absolute;right:2px;width:22px;z-index:3;border:1.5px solid #d4a017;border-radius:6px;background:#fff3c4;font-size:11px;line-height:1;color:#1d2330;overflow:hidden;padding:2px 0;text-align:center;pointer-events:auto;white-space:nowrap;opacity:.95}
+.block.done{background-image:linear-gradient(rgba(18,24,38,.70),rgba(18,24,38,.70))!important;color:#fff!important}
+.block.done .rb{color:#1d2330}
+.block.done .seg{background-image:linear-gradient(rgba(18,24,38,.70),rgba(18,24,38,.70))!important;color:#fff}
+#sChk{margin-top:12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);overflow:hidden}
+#sChk .tabs{padding:6px 10px 0;flex-wrap:wrap}
+#sChk ul{margin:0;padding:10px 14px 12px 32px;font-size:13px;line-height:1.5}
+#sChk li{margin:2px 0}
 
 
 .seg{position:absolute;left:0;right:0;display:flex;align-items:center;padding:0 8px;font-size:11px;font-weight:600;overflow:hidden;white-space:nowrap;background:#e9ecf1}
@@ -246,8 +254,10 @@ header.top select{width:auto;max-width:260px;padding:6px 10px;font-size:13px;fon
       <div id="sdays" class="hidden">
         <div style="margin:10px 0 4px"><button class="btn" id="sAdj">Adjust techs / training time for analysis</button> <span id="sAdjNote" style="color:var(--muted);font-size:12.5px;margin-left:8px"></span></div>
         <div id="sTechBox" class="hidden">
-          <div style="color:var(--muted);font-size:12.5px;margin:10px 0 8px">Tick the techs to check. Tick <b>Practice</b> and enter the hours per day to require that much biomethods practice (juniors 2 h, Chinarose 1.25 h, Maria 1 h by default \u2014 untick to turn it off). General accounts (PD Tech General, RB28/RB29 techs) are left out by default.
-            <button class="linkbtn" id="sAll">Check all</button> \u00b7 <button class="linkbtn" id="sNone">Check none</button></div>
+          <div style="color:var(--muted);font-size:12.5px;margin:10px 0 8px">Tick the techs to check. <b>Rules</b> sets each tech’s requirements: <b>Standard</b>, <b>Short day</b> (5 h max, no PM break / PEEL / lunch block), <b>Extended breaks</b> (45 + 15 min Non-Flex breaks, no 3 h without a break) or <b>Custom</b>. Tick <b>Practice</b> and enter hours per day to require that much biomethods practice (project PDPractice##; “update practice record” tasks don’t count as practice time). General accounts are left out by default.
+            <button class="linkbtn" id="sAll">Check all</button> · <button class="linkbtn" id="sNone">Check none</button> · <button class="linkbtn" id="sReset" title="Reload the shared settings">Reset to shared settings</button></div>
+          <div id="sSetNote" style="color:var(--muted);font-size:12.5px;margin:0 0 8px"></div>
+          <div style="font-size:12.5px;margin:0 0 8px"><b>Updating settings for everyone:</b> change the techs / rules here, click <button class="linkbtn" id="sExport">Download settings file</button>, then upload that <code>scheduler_settings.json</code> to the GitHub folder (replace the old one) — or edit the file directly on GitHub. Everyone who opens the link gets the new settings automatically. <button class="linkbtn" id="sImport">Load a settings file…</button><input type="file" id="sImpFile" accept=".json,application/json" class="hidden"></div>
           <div id="sTable"></div>
         </div>
         <div class="row2">
@@ -256,7 +266,37 @@ header.top select{width:auto;max-width:260px;padding:6px 10px;font-size:13px;fon
           <div style="flex:none;min-width:0;display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="sRun" style="padding:10px 22px">Run check</button><button class="btn" id="sRunX" style="padding:10px 16px" title="Slower. Auto-fills everyone to see how flexible tasks fit.">Complex analysis</button></div>
         </div>
       </div>
-      <div style="color:var(--muted);font-size:12.5px;margin-top:10px"><b>Run check</b> looks at: required tasks (first task as Non-Flex at start time, AM break, PM break, PEEL In/Out 15 min), Maria\u2019s (5 hour max) and Cassandra\u2019s special rules, biomethods practice hours, over 8 hours of task time, overlapping Non-Flex tasks, room changes with less than 15 minutes between them, and a 1-hour uninterrupted block for PEEL out + lunch (block must start by 10:45 for 6 AM, 11:45 for 7 AM, 2:00 PM for 9 AM). Fewer than 8 hours is fine. <b>Complex analysis</b> also auto-fills every schedule in the range to see how flexible tasks fit, and adds duplicate, mismatch and break-space checks. It is slower and usually not needed.</div>
+      <div id="sChk">
+        <div class="tabs" id="sChkTabs"><button class="tab on" data-p="0">Quick check covers</button><button class="tab" data-p="1">Complex analysis adds</button><button class="tab" data-p="2">Tech rules</button></div>
+        <ul data-p="0">
+          <li>First task: listed, Non-Flex, and the earliest task of the day</li>
+          <li>AM break and PM break listed (per the tech’s Rules)</li>
+          <li>PEEL In/Out (15 min) listed — not required on Saturday / Sunday</li>
+          <li>Total task time under the daily limit (8 h, lunch not counted)</li>
+          <li>Biomethods practice hours match the requirement (project PDPractice##; record-update tasks aren’t counted)</li>
+          <li>Non-Flex tasks that overlap each other</li>
+          <li>Different rooms with under 15 min between them (Wet Lab is neutral and doesn’t need the gap)</li>
+          <li>Lunch space must start by 4 h 45 min into the shift (10:45 / 11:45 / 1:45 for 6 / 7 / 9 AM starts): a 1-hour open block for PEEL out + lunch, or just 45 min on weekends or when a Cafe meeting is near lunch</li>
+          <li>Full-day time off: only flags extra tasks</li>
+          <li>Room Sanitation Notification tasks are ignored</li>
+        </ul>
+        <ul data-p="1" class="hidden">
+          <li>Everything in the quick check</li>
+          <li>Auto-fills each schedule and reports flexible tasks that don’t fit or need splitting</li>
+          <li>AM / PM break has room (not touching lunch, not in the first or last slot)</li>
+          <li>Lunch and breaks fit together</li>
+          <li>Non-Flex start/end times that don’t match the duration column</li>
+          <li>Duplicate tasks</li>
+          <li>View schedule shows the auto-filled layout</li>
+        </ul>
+        <ul data-p="2" class="hidden">
+          <li><b>Standard</b>: AM + PM break, PEEL, lunch space, 8 h max</li>
+          <li><b>Short day</b> (Maria): 5 h max, AM break only, no PEEL, no lunch block</li>
+          <li><b>Extended breaks</b> (Cassandra): 45-min AM break + 15-min extra break (both Non-Flex), no 3 h straight without a break</li>
+          <li><b>Custom</b>: pick any mix of the above and your own hour limits</li>
+          <li>Who is checked, their rules and practice hours come from the shared scheduler_settings.json on GitHub, so everyone sees the same settings</li>
+        </ul>
+        div>
       <div id="sprog"></div>
     </div>
     <div id="sout"></div>
@@ -280,7 +320,6 @@ var DAY_START = 360;
 var NOON = 24;
 var LUNCH_LEN = 3;
 var SHIFT_SLOTS = 34;
-var MAX_TASK_SLOTS = 32;
 var LUNCH_MIN = 8;
 var LUNCH_COLOR = '#D8CCF0';
 var NEUTRAL = '#E9ECF1';
@@ -293,7 +332,7 @@ function fmtMin(m){ var h=Math.floor(m/60), mm=m%60, ap=h>=12?'PM':'AM', h12=h%1
 function fmt(slot){ return fmtMin(DAY_START+slot*15); }
 function fmtDur(hours){ var m=Math.round(hours*60), h=Math.floor(m/60), r=m%60; if(!h) return r+' min'; return r? h+' h '+r+' min' : h+' h'; }
 function normName(s){ return String(s==null?'':s).toLowerCase().replace(/\s+/g,' ').trim(); }
-var S = { tasks:[], rooms:{}, roots:{}, tech:'', sheet:'', shiftStart:4, warnings:[] };
+var S = { notices:[], tasks:[], rooms:{}, roots:{}, tech:'', sheet:'', shiftStart:4, warnings:[] };
 var undoStack=[], addCnt=0, dirty=false, overlapOn=false, SOLVE_CAP=300000;
 function parseTime(v){
   if(v===''||v==null) return null;
@@ -348,15 +387,38 @@ function techNames(rows){
   rows.forEach(function(r){ if(!isDataRow(r)) return; var n=String(r[0]).trim(), k=normName(n); if(!seen[k]){ seen[k]=1; out.push(n); } });
   return out.sort();
 }
+function isPracticeStudy(x){ return /^pdpractice\s*\d+/i.test(String(x==null?'':x).trim()); }
+function isPracticeRecordTitle(x){ return /\b(update|updating|record|records|recording)\b/i.test(String(x||'')); }
+function isPracticeWork(t){ return isPracticeStudy(t.study) && !isPracticeRecordTitle(t.title); }
+function isNoticeTitle(x){ return /room\s*sanitation\s*notification/i.test(String(x||'')); }
+function isNeutralRoom(r){ return /wet\s*-?\s*lab/i.test(String(r||'')); }
+function isCafeRoom(r){ return /caf[e\u00e9]/i.test(String(r||'')); }
+function weekendSheet(name){
+  var s=String(name||'');
+  if(/\b(sat(urday)?|sun(day)?)\b/i.test(s)) return true;
+  if(/\b(mon(day)?|tue(s(day)?)?|wed(nesday)?|thu(r(s(day)?)?)?|fri(day)?)\b/i.test(s)) return false;
+  var m=s.match(/(\d{1,2})[.\/\-](\d{1,2})[.\/\-](\d{2,4})/);
+  if(m){ var y=+m[3]; if(y<100) y+=2000; var d=new Date(y,+m[1]-1,+m[2]); if(!isNaN(d.getTime())){ var w=d.getDay(); return w===0||w===6; } }
+  return false;
+}
+function cafeNearLunch(tasks,shift){
+  var lo=shift+LUNCH_MIN, hi=lunchLastSlot(shift)+LUNCH_LEN+4;
+  return tasks.some(function(t){ return t.fixed&&t.start!=null&&isCafeRoom(t.room)&&t.start<hi&&t.start+t.len>lo; });
+}
+function lunchNeedsHour(tasks,shift,sheet){ return !(weekendSheet(sheet)||cafeNearLunch(tasks,shift)); }
 var SHORT_DAY_SLOTS=20;
 function buildTasks(rows, fills, tech, opts){
-  var q=normName(tech), tasks=[], warnings=[], rooms={}, palIdx=0;
+  var q=normName(tech), tasks=[], warnings=[], rooms={}, palIdx=0, notices=[];
   rows.forEach(function(r,i){
     if(!isDataRow(r) || normName(r[0])!==q) return;
     var title=String(r[1]).trim(), hours=Number(r[2]);
     var st=parseTime(r[6]), en=parseTime(r[7]);
     var kind=kindOf(r[5], st!=null);
     var room=String(r[4]==null?'':r[4]).trim();
+    if(isNoticeTitle(title)){
+      if(st!=null){ var ne=(en==null||en<=st)?st+Math.round(hours*60):en, ns0=Math.max(0,Math.floor((st-DAY_START)/15)), ne0=Math.min(SLOTS,Math.ceil((ne-DAY_START)/15)); if(ne0>ns0) notices.push({title:title,room:room,start:ns0,len:ne0-ns0}); }
+      return;
+    }
     var t={ id:'t'+i, title:title, hours:hours, study:String(r[3]==null?'':r[3]).trim(), room:room, kind:kind,
             team:String(r[8]==null?'':r[8]).trim(), pm:String(r[9]==null?'':r[9]).trim(), fixed:kind==='fixed', start:null, len:Math.max(1,Math.ceil(hours*4-1e-9)) };
     if(room && !rooms[room]){
@@ -380,7 +442,7 @@ function buildTasks(rows, fills, tech, opts){
   var shift = fx.length ? Math.min.apply(null, fx.map(function(t){ return t.start; })) : 4;
   var roots={}, split2=[];
   tasks.forEach(function(x){
-    if(!x.fixed && x.len===8 && (/^pdpractice/i.test(x.study) || /sop.*shadow/i.test(x.title))){
+    if(!x.fixed && x.len===8 && (isPracticeWork(x) || /sop.*shadow/i.test(x.title))){
       roots[x.id]=JSON.parse(JSON.stringify(x));
       split2.push(Object.assign({},x,{root:x.id,baseTitle:x.title,title:x.title+' (part 1/2)',len:4,hours:1}));
       split2.push(Object.assign({},x,{id:x.id+'s1',root:x.id,baseTitle:x.title,title:x.title+' (part 2/2)',len:4,hours:1}));
@@ -389,8 +451,8 @@ function buildTasks(rows, fills, tech, opts){
   tasks=split2;
   var totalSlots=0; tasks.forEach(function(x){ totalSlots+=x.len; });
   var lunch={ id:'lunch', title:'Lunch', hours:0.75, study:'', room:'', kind:'lunch', team:'', pm:'', fixed:false, start:null, len:LUNCH_LEN, notes:'' };
-  var peels=tasks.filter(isPeel);
-  if(peels.length===1){
+  var peels=tasks.filter(isPeel), needHour=lunchNeedsHour(tasks,shift,opts&&opts.sheet);
+  if(peels.length===1 && needHour){
     var pt=peels[0];
     lunch.peel={id:pt.id,title:pt.title,hours:pt.hours,len:pt.len,study:pt.study,room:pt.room,team:pt.team,pm:pt.pm,kind:pt.kind};
     lunch.peelFirst=true; lunch.len=LUNCH_LEN+pt.len; lunch.title='Lunch + PEEL In/Out';
@@ -400,13 +462,13 @@ function buildTasks(rows, fills, tech, opts){
   var shortDay=!!(opts&&opts.skipLunchShort) && totalSlots<=SHORT_DAY_SLOTS;
   var noLunchWhy=dayOff?'dayoff':(shortDay?'short':'');
   if(!noLunchWhy) tasks.push(lunch); else if(lunch.peel){ var pp=lunch.peel; tasks.push({id:pp.id,title:pp.title,hours:pp.hours,len:pp.len,study:pp.study,room:pp.room,team:pp.team,pm:pp.pm,kind:pp.kind||'flex',fixed:false,start:null,notes:''}); }
-  return { tasks:tasks, rooms:rooms, roots:roots, warnings:warnings, shift:shift, noLunch:noLunchWhy };
+  return { tasks:tasks, rooms:rooms, roots:roots, warnings:warnings, shift:shift, noLunch:noLunchWhy, notices:notices, lunchMode:needHour?'':(weekendSheet(opts&&opts.sheet)?'weekend':'cafe'), peelLoose:(peels.length===1&&!needHour) };
 }
-function isPracticeTask(t){ return /^pdpractice/i.test(t.study||'') || /biomethod/i.test(t.title||''); }
+function isPracticeTask(t){ return isPracticeWork(t); }
 function isBreak(t){ return !t.fixed && t.kind!=='lunch' && /stretch\s*\/?\s*break|break\s*time/i.test(t.title); }
 var NO_BREAK_RULES=false;
 function flagOf(t){ if(NO_BREAK_RULES) return ''; return t.kind==='lunch'?'L':(isBreak(t)?'B':''); }
-function diffRoom(a,b){ return !!(a&&b&&String(a).toLowerCase()!==String(b).toLowerCase()); }
+function diffRoom(a,b){ return !!(a&&b&&!isNeutralRoom(a)&&!isNeutralRoom(b)&&String(a).toLowerCase()!==String(b).toLowerCase()); }
 function slotRooms(t){
   var a=[],i;
   if(t.kind==='lunch' && t.peel){ var p=t.peel; for(i=0;i<t.len;i++){ var inP=t.peelFirst? i<p.len : i>=t.len-p.len; a.push(inP?(p.room||''):''); } }
@@ -453,7 +515,7 @@ function computeLanes(list){
 function typeLabel(t){ if(t.kind==='lunch'&&t.peel) return 'Lunch (45 min) + PEEL In/Out'; return {fixed:'Non-Flex (fixed time)',flex:'Flex (any time)',am:'Flex AM (before 12:00 PM)',pm:'Flex PM (after 12:00 PM)',lunch:'Lunch (45 min)'}[t.kind]; }
 function mkLabelBits(t, withMeta, metaText){
   var inn=el('div','in');
-  var r1=el('div','r1'); r1.appendChild(el('span','bt',t.title));
+  var r1=el('div','r1'); r1.appendChild(el('span','bt',(t.done?'\u2714 ':'')+t.title));
   if(t.notes && String(t.notes).trim()) r1.appendChild(el('span','nt','\ud83d\udcdd'));
   if(t.room) r1.appendChild(el('span','rb',t.room));
   inn.appendChild(r1);
@@ -572,7 +634,7 @@ function diagnose(flex,fm,lo,hi){
 }
 function splitSearch(flex,fm,lo,hi){
   var c=flex.filter(function(t){ return canSplit(t)&&!isBreak(t)&&t.len>=3; });
-  c.sort(function(a,b){ var pa=/^pdpractice/i.test(a.study)?0:1, pb=/^pdpractice/i.test(b.study)?0:1; return pa-pb||b.len-a.len; });
+  c.sort(function(a,b){ var pa=isPracticeWork(a)?0:1, pb=isPracticeWork(b)?0:1; return pa-pb||b.len-a.len; });
   c=c.slice(0,5); if(!c.length) return null;
   var gaps={}, run=0, i;
   for(i=lo;i<hi;i++){ if(!fm.occ[i]) run++; else { if(run) gaps[run]=1; run=0; } }
@@ -662,8 +724,8 @@ function entries(list){
     if(t.kind==='lunch' && t.peel){
       var p=t.peel, ps=null, ls=null;
       if(t.start!=null){ ps=t.start+(t.peelFirst?0:LUNCH_LEN); ls=t.start+(t.peelFirst?p.len:0); }
-      var pe={title:p.title,hours:p.hours,study:p.study,room:p.room,kind:p.kind||'flex',team:p.team,pm:p.pm,notes:'',start:ps,len:p.len,fixed:false};
-      var le={title:'Lunch',hours:0.75,study:'',room:'',kind:'lunch',team:'',pm:'',notes:t.notes||'',start:ls,len:LUNCH_LEN,fixed:false};
+      var pe={title:p.title,hours:p.hours,study:p.study,room:p.room,kind:p.kind||'flex',team:p.team,pm:p.pm,notes:'',start:ps,len:p.len,fixed:false,done:t.done};
+      var le={title:'Lunch',hours:0.75,study:'',room:'',kind:'lunch',team:'',pm:'',notes:t.notes||'',start:ls,len:LUNCH_LEN,fixed:false,done:t.done};
       if(t.peelFirst){ out.push(pe); out.push(le); } else { out.push(le); out.push(pe); }
     } else out.push(t);
   });
@@ -672,27 +734,78 @@ function entries(list){
 var schedWb=null, schedFile='', SR=null, sFilter='all', sSearch='', sClean=false;
 var TS={};
 var GENERIC_RE=/tech\s*general|\bgeneral\b|\btech\s*\d|^pd\s|^rb\d+\s/i;
-var DEF_INCLUDE=['ben','simranjot','sheng','sophie','pranali','cassie','jenna','camille','maria','cassidy','breanna','deanna','chinarose','diana','andrea','abbi','lali'];
-var DEF_PRACTICE=[['abbi',2],['lali',2],['andrea',2],['chinarose',1.25],['diana',2],['breanna',2],['deanna',2],['maria',1]];
 var ALIAS={cassie:'cassandra',lali:'citlali'};
 function firstIs(name,a){ var first=normName(name).split(' ')[0]; a=ALIAS[a]||a; if(a==='ben') return first==='ben'; return first.indexOf(a)===0; }
-function defaultInclude(name){ if(GENERIC_RE.test(normName(name))) return false; return DEF_INCLUDE.some(function(a){ return firstIs(name,a); }); }
-function defaultPractice(name){ var r=0; DEF_PRACTICE.forEach(function(p){ if(firstIs(name,p[0])) r=p[1]; }); return r; }
+function defaultInclude(name){ if(GENERIC_RE.test(normName(name))) return false; var e=techEntry(name); return !!(e && e.include!==false); }
+function defaultPractice(name){ var e=techEntry(name); return (e && e.practiceHours>0)?e.practiceHours:0; }
 function roleOf(name){ var f=normName(name).split(' ')[0]; if(f.indexOf('maria')===0) return 'maria'; if(f.indexOf('cassandra')===0) return 'cassandra'; return 'std'; }
 function breakKind(t){ if(/\bAM\b/.test(t.title)) return 'am'; if(/\bPM\b/.test(t.title)) return 'pm'; return (t.kind==='am'||t.kind==='pm')?t.kind:'flex'; }
 function breakLike(t){ return /\bbreak\b/i.test(t.title); }
 function isFirstTask(t){ return /first\s*ta(sk|ks)/i.test(t.title); }
-function isPracticeT(t){ return /^pdpractice/i.test(t.study) || /biomethod/i.test(t.title); }
+function isPracticeT(t){ return isPracticeWork(t); }
+var PRESETS={
+  std:{amBreak:true,pmBreak:true,peel:true,lunchBlock:true,maxHours:8,extBreaks:false,maxContinuous:0},
+  short:{amBreak:true,pmBreak:false,peel:false,lunchBlock:false,maxHours:5,extBreaks:false,maxContinuous:0},
+  ext:{amBreak:true,pmBreak:true,peel:true,lunchBlock:true,maxHours:8,extBreaks:true,maxContinuous:3}
+};
+var PRESETS_BASE=JSON.parse(JSON.stringify(PRESETS));
+var BUILTIN_SETTINGS={version:1,updated:'built-in',note:'Built-in defaults (used when scheduler_settings.json is not found next to this page).',presets:{},techs:{
+  ben:{},simranjot:{},sheng:{},sophie:{},pranali:{},cassie:{rule:'ext'},jenna:{},camille:{},maria:{practiceHours:1,rule:'short'},cassidy:{},
+  breanna:{practiceHours:2},deanna:{practiceHours:2},chinarose:{practiceHours:1.25},diana:{practiceHours:2},andrea:{practiceHours:2},abbi:{practiceHours:2},lali:{practiceHours:2}}};
+var SETTINGS=JSON.parse(JSON.stringify(BUILTIN_SETTINGS)), SETTINGS_SRC='built-in defaults';
+function techEntry(name){
+  var t=SETTINGS.techs||{}, k=normName(name); if(t[k]) return t[k];
+  var hit=null; Object.keys(t).forEach(function(key){ if(!hit && key.indexOf(' ')<0 && firstIs(name,key)) hit=t[key]; });
+  return hit;
+}
+function defaultRule(n){ var e=techEntry(n); return (e&&e.rule)||'std'; }
+function rulesFor(tech){ var st=TS[tech]||{}, k=st.rule||defaultRule(tech); if(k==='custom') return Object.assign({},PRESETS.std,st.custom||{}); return PRESETS[k]||PRESETS.std; }
+function defTS(n){ var e=techEntry(n); return {include:defaultInclude(n),hours:defaultPractice(n),rule:defaultRule(n),custom:(e&&e.custom)||null}; }
+function applySettings(o,src){
+  if(!o||typeof o!=='object'||!o.techs||typeof o.techs!=='object') throw new Error('not a settings file');
+  var techs={}; Object.keys(o.techs).forEach(function(k){ techs[normName(k)]=o.techs[k]||{}; });
+  SETTINGS={version:o.version||1,updated:o.updated||'',note:o.note||'',presets:o.presets||{},techs:techs}; SETTINGS_SRC=src;
+  PRESETS=JSON.parse(JSON.stringify(PRESETS_BASE));
+  Object.keys(SETTINGS.presets).forEach(function(k){ PRESETS[k]=Object.assign({},PRESETS_BASE[k]||PRESETS_BASE.std,SETTINGS.presets[k]); });
+}
+function loadSharedSettings(){
+  return fetch('scheduler_settings.json?v='+Date.now(),{cache:'no-store'})
+    .then(function(r){ if(!r.ok) throw new Error('missing'); return r.json(); })
+    .then(function(o){ applySettings(o,'scheduler_settings.json'); })
+    .catch(function(){ SETTINGS=JSON.parse(JSON.stringify(BUILTIN_SETTINGS)); SETTINGS_SRC='built-in defaults'; PRESETS=JSON.parse(JSON.stringify(PRESETS_BASE)); });
+}
+function settingsNote(){
+  var n=$('#sSetNote'); if(!n) return;
+  n.textContent=(SETTINGS_SRC==='scheduler_settings.json'?'Using the shared settings file (scheduler_settings.json'+(SETTINGS.updated?', updated '+SETTINGS.updated:'')+'). ':(SETTINGS_SRC==='built-in defaults'?'Using built-in defaults (no scheduler_settings.json found next to this page). ':'Using settings from '+SETTINGS_SRC+'. '))+'Changes in this table only last until you close or refresh the page.';
+}
+function exportSettings(){
+  var techs={}; Object.keys(SETTINGS.techs).forEach(function(k){ techs[k]=SETTINGS.techs[k]; });
+  var names=Object.keys(TS), byFirst={};
+  names.forEach(function(n){ var f=normName(n).split(' ')[0]; (byFirst[f]=byFirst[f]||[]).push(n); });
+  names.forEach(function(n){ Object.keys(techs).forEach(function(key){ if(key===normName(n) || (key.indexOf(' ')<0 && firstIs(n,key))) delete techs[key]; }); });
+  function entryOf(t){ var e={}; if(!t.include) e.include=false; if(t.hours>0) e.practiceHours=t.hours; if(t.rule&&t.rule!=='std') e.rule=t.rule; if(t.rule==='custom'&&t.custom) e.custom=t.custom; return e; }
+  Object.keys(byFirst).forEach(function(f){
+    var list=byFirst[f], sig=list.map(function(n){ return JSON.stringify(entryOf(TS[n])); }), same=sig.every(function(x){ return x===sig[0]; });
+    list.forEach(function(n){
+      var e=entryOf(TS[n]); if(!TS[n].include && !Object.keys(e).filter(function(k){ return k!=='include'; }).length) return;
+      techs[same?f:normName(n)]=e;
+    });
+  });
+  var sorted={}; Object.keys(techs).sort().forEach(function(k){ sorted[k]=techs[k]; });
+  var out={version:1,updated:new Date().toISOString().slice(0,10),note:SETTINGS.note||'Shared settings for the Scheduler Check. Techs are matched by first name (or full name). A tech listed here is checked unless "include" is false.',presets:SETTINGS.presets||{},techs:sorted};
+  var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(out,null,2)],{type:'application/json'})); a.download='scheduler_settings.json'; document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500);
+}
 function cloneTask(t,over){ return Object.assign({},t,over||{}); }
 function span(t){ return t.exact?[t.exact[0],t.exact[1]]:[DAY_START+t.start*15,DAY_START+(t.start+t.len)*15]; }
 function hm(m){ return fmtMin(m); }
 function analyzePerson(day,data,tech,mode){
-  var complex=(mode==='complex'), role=roleOf(tech), st=TS[tech]||{include:true,hours:0};
+  var complex=(mode==='complex'), st=TS[tech]||{include:true,hours:0}, R=rulesFor(tech), wkend=weekendSheet(day), lunchMode='';
   var keep={tasks:S.tasks,rooms:S.rooms,roots:S.roots,tech:S.tech,sheet:S.sheet,shiftStart:S.shiftStart};
   var issues=[]; function add(sev,type,msg){ issues.push({sev:sev,type:type,msg:msg}); }
   var snap=null;
   try{
-    var built=buildTasks(data.rows,data.fills,tech);
+    var built=buildTasks(data.rows,data.fills,tech,{sheet:day}); lunchMode=built.lunchMode;
     S.tasks=built.tasks; S.rooms=built.rooms; S.roots=built.roots||{}; S.tech=tech; S.sheet=day; S.shiftStart=built.shift;
     built.warnings.forEach(function(w){ add('warn','Data',w); });
     var tasks=S.tasks, fixed=tasks.filter(function(t){ return t.fixed&&t.start!=null; });
@@ -706,8 +819,7 @@ function analyzePerson(day,data,tech,mode){
       // ---- total task time ----
       var slots=0; tasks.forEach(function(t){ slots+= t.kind==='lunch'?(t.peel?t.peel.len:0):t.len; });
       var totalH=slots/4;
-      if(role==='maria'){ if(totalH>5+1e-9) add('error','Over 5 hours','Task time is '+fmtDur(totalH)+' (Maria\u2019s limit is 5 hours) \u2014 '+fmtDur(totalH-5)+' over.'); }
-      else if(slots>MAX_TASK_SLOTS) add('error','Over 8 hours','Task time is '+fmtDur(totalH)+' (limit is 8 h, lunch not counted) \u2014 '+fmtDur((slots-MAX_TASK_SLOTS)/4)+' over.');
+      if(totalH>R.maxHours+1e-9) add('error','Over '+R.maxHours+' hours','Task time is '+fmtDur(totalH)+' (limit for this tech is '+R.maxHours+' h, lunch not counted) \u2014 '+fmtDur(totalH-R.maxHours)+' over.');
       // ---- first task = start time, Non-Flex ----
       var firstT=tasks.filter(isFirstTask);
       if(!firstT.length) add('error','No first task','No \u201c[FIRST TASK]\u201d is listed. Every tech needs a Non-Flex first task at their start time.');
@@ -723,11 +835,16 @@ function analyzePerson(day,data,tech,mode){
       }
       // ---- breaks ----
       var brk=tasks.filter(breakLike), am=brk.filter(function(b){ return breakKind(b)==='am'; }), pm=brk.filter(function(b){ return breakKind(b)==='pm'; });
-      if(role==='cassandra'){
+      if(R.extBreaks){
         var b45=brk.filter(function(b){ return Math.abs(b.hours-0.75)<0.01; }), b15=brk.filter(function(b){ return Math.abs(b.hours-0.25)<0.01; });
         if(!b45.length) add('error','No 45-min AM break','Needs a 0.75 h AM break (Non-Flex).'); else if(!b45[0].fixed) add('error','AM break is Flex','The 0.75 h AM break must be Non-Flex.');
         if(!b15.length) add('error','No extra 15-min break','Needs an extra 0.25 h break (Non-Flex).'); else if(!b15[0].fixed) add('error','Extra break is Flex','The extra 0.25 h break must be Non-Flex.');
-        // continuous work: never 3 h without a break (lunch is placed where it helps most)
+      } else {
+        if(R.amBreak && !am.length) add('error','No AM break','No AM Stretch/Break task is listed.');
+        if(R.pmBreak && !pm.length) add('error','No PM break','No PM Stretch/Break task is listed.');
+      }
+      if(R.maxContinuous>0){
+        // continuous work: never N hours without a break (lunch is placed where it helps most)
         var shM=DAY_START+S.shiftStart*15, endM=shM+SHIFT_SLOTS*15;
         var bs=brk.filter(function(b){ return b.fixed&&b.start!=null; }).map(function(b){ return span(b); }).sort(function(a,b){ return a[0]-b[0]; });
         var segs=[], cur=shM;
@@ -743,13 +860,10 @@ function analyzePerson(day,data,tech,mode){
             }
           }
         }
-        if(best.m>=180) add('error','3+ hours without a break','Longest stretch of continuous work is '+fmtDur(best.m/60)+' ('+hm(best.w[0])+' - '+hm(best.w[1])+') even with lunch placed best. Her breaks can move \u00b115 min, but no one should work 3 hours straight.');
-      } else {
-        if(!am.length) add('error','No AM break','No AM Stretch/Break task is listed.');
-        if(role!=='maria' && !pm.length) add('error','No PM break','No PM Stretch/Break task is listed.');
+        if(best.m>=R.maxContinuous*60) add('error',R.maxContinuous+'+ hours without a break','Longest stretch of continuous work is '+fmtDur(best.m/60)+' ('+hm(best.w[0])+' - '+hm(best.w[1])+') even with lunch placed best. Breaks can move \u00b115 min, but this tech should not work '+R.maxContinuous+' hours straight.');
       }
       // ---- PEEL In/Out (15 min) ----
-      if(role!=='maria'){
+      if(R.peel && !wkend){
         var peels=lunch.peel?[lunch.peel]:tasks.filter(isPeel);
         if(!peels.length) add('error','No PEEL In/Out','No \u201cPEEL In/Out for lunch\u201d task (0.25 h) is listed.');
         else if(peels.length>1) add('error','Multiple PEEL tasks',peels.length+' PEEL In/Out tasks are listed (one expected).');
@@ -767,14 +881,18 @@ function analyzePerson(day,data,tech,mode){
         if(sa[0]<sb[1] && sb[0]<sa[1]) add('error','Overlapping Non-Flex','\u201c'+a.title+'\u201d ('+hm(sa[0])+' - '+hm(sa[1])+') overlaps \u201c'+b.title+'\u201d ('+hm(sb[0])+' - '+hm(sb[1])+').');
         else if(diffRoom(a.room,b.room) && sb[0]>=sa[1] && sb[0]-sa[1]<15) add('warn','Room transition under 15 min','Only '+(sb[0]-sa[1])+' min between '+a.room+' (\u201c'+a.title+'\u201d ends '+hm(sa[1])+') and '+b.room+' (\u201c'+b.title+'\u201d starts '+hm(sb[0])+'). Different rooms need at least 15 minutes.');
       }
-      // ---- 1-hour uninterrupted lunch block ----
-      if(fixed.length){
-        var occF=fixedOcc(), sh0=S.shiftStart, okL=false;
-        for(var s=sh0+LUNCH_MIN-1; s<=lunchLastSlot(sh0) && s+4<=SLOTS; s++){
-          var free=true; for(var k=s;k<s+4;k++){ if(occF[k]){ free=false; break; } }
+      // ---- lunch space: 1-hour block (PEEL out + lunch), or 45 min on weekends / cafe days ----
+      if(R.lunchBlock && fixed.length){
+        var occF=fixedOcc(), sh0=S.shiftStart, okL=false, need=lunchMode?3:4, begin=lunchMode?sh0+LUNCH_MIN:sh0+LUNCH_MIN-1;
+        for(var s=begin; s<=lunchLastSlot(sh0) && s+need<=SLOTS; s++){
+          var free=true; for(var k=s;k<s+need;k++){ if(occF[k]){ free=false; break; } }
           if(free){ okL=true; break; }
         }
-        if(!okL) add('error','No 1-hour lunch block','No uninterrupted 1 hour is free for PEEL out + lunch with the block starting by '+fmt(lunchLastSlot(sh0))+' (shift starts '+fmt(sh0)+'). Morning tasks need to wrap up with 15 minutes to spare for PEEL out.');
+        if(!okL){
+          if(lunchMode) add('error','No 45-minute lunch window','No open 45 minutes for lunch starting by '+fmt(lunchLastSlot(sh0))+' ('+(lunchMode==='weekend'?'weekend \u2014 no 1-hour block needed':'a Cafe meeting is near lunch \u2014 no 1-hour block needed')+'; shift starts '+fmt(sh0)+').');
+          else add('error','No 1-hour lunch block','No uninterrupted 1 hour is free for PEEL out + lunch with the block starting by '+fmt(lunchLastSlot(sh0))+' (shift starts '+fmt(sh0)+'). Morning tasks need to wrap up with 15 minutes to spare for PEEL out.');
+        }
+        else if(lunchMode==='cafe') add('info','Cafe meeting near lunch','A Cafe task is scheduled around lunch, so only a 45-minute lunch window is required (no 1-hour block).');
       }
       // ---- complex only ----
       if(complex){
@@ -799,7 +917,7 @@ function analyzePerson(day,data,tech,mode){
         if(flex.length){
           var fm2=roomMap(true), plan=planAll(flex,fm2);
           if(plan.status==='split'){
-            var np=plan.splits.filter(function(sp){ return !/^pdpractice/i.test(sp.task.study); });
+            var np=plan.splits.filter(function(sp){ return !isPracticeWork(sp.task); });
             if(np.length) add('warn','Needs splitting','Fits inside the shift only if split: '+splitLines({splits:np}).join('; ').replace(/\u2702 /g,'')+'.');
             applyPlanCore(plan);
           }
@@ -819,34 +937,57 @@ function analyzePerson(day,data,tech,mode){
   var sevRank={error:0,warn:1,info:2}; issues.sort(function(a,b){ return sevRank[a.sev]-sevRank[b.sev]; });
   return {tech:tech,issues:issues,snap:snap};
 }
+function editCustom(n){
+  var o=openModal('Custom rules \u2014 '+n,NEUTRAL), c=Object.assign({},PRESETS.std,TS[n].custom||{}), b=o.body;
+  function chk(label,key){ var r=el('div','fld'), l=document.createElement('label'), i=document.createElement('input'); l.style.cssText='display:flex;gap:8px;align-items:flex-start;cursor:pointer;color:var(--text);font-size:13.5px'; i.type='checkbox'; i.checked=!!c[key]; i.addEventListener('change',function(){ c[key]=i.checked; }); l.appendChild(i); l.appendChild(document.createTextNode(label)); r.appendChild(l); b.appendChild(r); }
+  function num(label,key,step){ var r=el('div','fld'); r.appendChild(el('label','',label)); var i=document.createElement('input'); i.type='number'; i.min='0'; i.step=step; i.value=c[key]; i.style.width='100px'; i.addEventListener('input',function(){ var v=parseFloat(i.value); c[key]=(v>=0)?v:0; }); r.appendChild(i); b.appendChild(r); }
+  chk('Require an AM break','amBreak'); chk('Require a PM break','pmBreak'); chk('Require PEEL In/Out (15 min) \u2014 never required on weekends','peel');
+  chk('Require lunch space (1-hour block for PEEL out + lunch; 45 min on weekends / cafe days)','lunchBlock');
+  chk('Extended breaks: 45-min AM break + extra 15-min break, both Non-Flex (replaces the AM/PM break checks)','extBreaks');
+  num('Max task time per day (hours, lunch not counted)','maxHours','0.25'); num('Max continuous work without a break (hours, 0 = don\u2019t check)','maxContinuous','0.25');
+  var cn=el('button','btn','Cancel'); cn.addEventListener('click',closeInfo);
+  var ok=el('button','btn primary','Save'); ok.addEventListener('click',function(){ if(!(c.maxHours>0)) c.maxHours=8; TS[n].custom=c; closeInfo(); updateAdjNote(); });
+  o.foot.appendChild(cn); o.foot.appendChild(ok);
+}
 function buildTechTable(){
   var seen={}; schedWb.SheetNames.forEach(function(sn){ techNames(readSheet(schedWb.Sheets[sn]).rows).forEach(function(n){ seen[n]=1; }); });
   var list=Object.keys(seen).sort(function(a,b){ var ga=GENERIC_RE.test(normName(a))?1:0, gb=GENERIC_RE.test(normName(b))?1:0; return ga-gb || (a<b?-1:1); });
-  TS={}; list.forEach(function(n){ TS[n]={include:defaultInclude(n),hours:defaultPractice(n)}; });
+  TS={}; list.forEach(function(n){ TS[n]=defTS(n); });
   var box=$('#sTable'); box.innerHTML='';
   var tb=document.createElement('table'); tb.className='ttab';
-  var th=document.createElement('thead'), hr=document.createElement('tr'); ['Check','Technologist','Practice','Hours / day'].forEach(function(h){ hr.appendChild(el('th','',h)); }); th.appendChild(hr); tb.appendChild(th);
+  var th=document.createElement('thead'), hr=document.createElement('tr'); ['Check','Technologist','Rules','Practice','Hours / day'].forEach(function(h){ hr.appendChild(el('th','',h)); }); th.appendChild(hr); tb.appendChild(th);
   var body=document.createElement('tbody');
   list.forEach(function(n){
     var tr=document.createElement('tr'); if(GENERIC_RE.test(normName(n))) tr.className='gen';
     var c1=document.createElement('td'), cb=document.createElement('input'); cb.type='checkbox'; cb.checked=TS[n].include; cb.className='incl'; cb.addEventListener('change',function(){ TS[n].include=cb.checked; updateAdjNote(); }); c1.appendChild(cb); tr.appendChild(c1);
     tr.appendChild(el('td','',n+(GENERIC_RE.test(normName(n))?'  (general account)':'')));
+    var c2=document.createElement('td'), rs=document.createElement('select'), eb=el('button','linkbtn','Edit'); eb.style.marginLeft='8px';
+    [['std','Standard'],['short','Short day'],['ext','Extended breaks'],['custom','Custom\u2026']].forEach(function(o){ var op=el('option','',o[1]); op.value=o[0]; rs.appendChild(op); });
+    rs.value=TS[n].rule; rs.style.width='auto'; rs.style.padding='4px 6px'; eb.style.display=(rs.value==='custom')?'':'none';
+    rs.addEventListener('change',function(){ TS[n].rule=rs.value; eb.style.display=(rs.value==='custom')?'':'none'; if(rs.value==='custom'){ if(!TS[n].custom) TS[n].custom=Object.assign({},PRESETS.std); editCustom(n); } updateAdjNote(); });
+    eb.addEventListener('click',function(){ editCustom(n); });
+    c2.appendChild(rs); c2.appendChild(eb); tr.appendChild(c2);
     var c3=document.createElement('td'), pc=document.createElement('input'); pc.type='checkbox'; pc.checked=TS[n].hours>0; c3.appendChild(pc); tr.appendChild(c3);
     var c4=document.createElement('td'), hi=document.createElement('input'); hi.type='number'; hi.min='0'; hi.step='0.25'; hi.value=TS[n].hours>0?TS[n].hours:''; c4.appendChild(hi); tr.appendChild(c4);
     pc.addEventListener('change',function(){ if(pc.checked){ TS[n].hours=defaultPractice(n)||2; hi.value=TS[n].hours; } else { TS[n].hours=0; hi.value=''; } updateAdjNote(); });
     hi.addEventListener('input',function(){ var v=parseFloat(hi.value); TS[n].hours=(v>0)?v:0; pc.checked=TS[n].hours>0; updateAdjNote(); });
     body.appendChild(tr);
   });
-  tb.appendChild(body); box.appendChild(tb); updateAdjNote();
+  tb.appendChild(body); box.appendChild(tb); updateAdjNote(); settingsNote();
 }
 function setAllIncl(v){ Object.keys(TS).forEach(function(n){ TS[n].include=v; }); Array.prototype.forEach.call(document.querySelectorAll('#sTable .incl'),function(c){ c.checked=v; }); updateAdjNote(); }
 function updateAdjNote(){
-  var n=0,m=0,pr=0; Object.keys(TS).forEach(function(k){ m++; if(TS[k].include){ n++; if(TS[k].hours>0) pr++; } });
-  $('#sAdjNote').textContent=n+' of '+m+' techs will be checked \u00b7 '+pr+' with a practice requirement';
+  var n=0,m=0,pr=0,sp=0; Object.keys(TS).forEach(function(k){ m++; if(TS[k].include){ n++; if(TS[k].hours>0) pr++; if((TS[k].rule||'std')!=='std') sp++; } });
+  $('#sAdjNote').textContent=n+' of '+m+' techs will be checked \u00b7 '+pr+' with a practice requirement \u00b7 '+sp+' with special rules';
 }
 $('#sAdj').addEventListener('click',function(){ var b=$('#sTechBox'); b.classList.toggle('hidden'); $('#sAdj').textContent=b.classList.contains('hidden')?'Adjust techs / training time for analysis':'Hide tech settings'; });
 $('#sAll').addEventListener('click',function(){ setAllIncl(true); });
 $('#sNone').addEventListener('click',function(){ setAllIncl(false); });
+$('#sReset').addEventListener('click',function(){ loadSharedSettings().then(buildTechTable); });
+$('#sExport').addEventListener('click',exportSettings);
+$('#sImport').addEventListener('click',function(){ $('#sImpFile').click(); });
+$('#sImpFile').addEventListener('change',function(e){ var f=e.target.files[0]; if(!f) return; var rd=new FileReader(); rd.onload=function(){ try{ applySettings(JSON.parse(rd.result),f.name); buildTechTable(); }catch(err){ toast('That does not look like a settings file.'); } $('#sImpFile').value=''; }; rd.readAsText(f); });
+Array.prototype.forEach.call(document.querySelectorAll('#sChkTabs .tab'),function(b){ b.addEventListener('click',function(){ Array.prototype.forEach.call(document.querySelectorAll('#sChkTabs .tab'),function(x){ x.classList.toggle('on',x===b); }); Array.prototype.forEach.call(document.querySelectorAll('#sChk ul'),function(u){ u.classList.toggle('hidden',u.dataset.p!==b.dataset.p); }); }); });
 function yieldUI(){ return new Promise(function(r){ setTimeout(r,0); }); }
 async function runSched(mode){
   if(!schedWb) return;
@@ -989,7 +1130,7 @@ function loadSchedFile(file){
     $('#sdropTxt').innerHTML=''; $('#sdropTxt').appendChild(el('strong','','\u2713 '+file.name)); $('#sdropTxt').appendChild(document.createElement('br'));
     $('#sdropTxt').appendChild(document.createTextNode(schedWb.SheetNames.length+' day tab'+(schedWb.SheetNames.length===1?'':'s')+' found \u00b7 click to choose a different file'));
     $('#sprog').textContent=''; $('#sout').innerHTML=''; SR=null;
-    buildTechTable();
+    loadSharedSettings().then(buildTechTable);
   };
   rd.readAsArrayBuffer(file);
 }
