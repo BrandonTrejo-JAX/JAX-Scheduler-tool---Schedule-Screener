@@ -296,7 +296,7 @@ header.top select{width:auto;max-width:260px;padding:6px 10px;font-size:13px;fon
           <li><b>Custom</b>: pick any mix of the above and your own hour limits</li>
           <li>Who is checked, their rules and practice hours come from the shared scheduler_settings.json on GitHub, so everyone sees the same settings</li>
         </ul>
-        div>
+      </div>
       <div id="sprog"></div>
     </div>
     <div id="sout"></div>
@@ -741,7 +741,7 @@ function defaultPractice(name){ var e=techEntry(name); return (e && e.practiceHo
 function roleOf(name){ var f=normName(name).split(' ')[0]; if(f.indexOf('maria')===0) return 'maria'; if(f.indexOf('cassandra')===0) return 'cassandra'; return 'std'; }
 function breakKind(t){ if(/\bAM\b/.test(t.title)) return 'am'; if(/\bPM\b/.test(t.title)) return 'pm'; return (t.kind==='am'||t.kind==='pm')?t.kind:'flex'; }
 function breakLike(t){ return /\bbreak\b/i.test(t.title); }
-function isFirstTask(t){ return /first\s*ta(sk|ks)/i.test(t.title); }
+function isFirstTask(t){ return /first\s*ta(sk|ks|k)/i.test(t.title); }
 function isPracticeT(t){ return isPracticeWork(t); }
 var PRESETS={
   std:{amBreak:true,pmBreak:true,peel:true,lunchBlock:true,maxHours:8,extBreaks:false,maxContinuous:0},
@@ -825,7 +825,6 @@ function analyzePerson(day,data,tech,mode){
       if(!firstT.length) add('error','No first task','No \u201c[FIRST TASK]\u201d is listed. Every tech needs a Non-Flex first task at their start time.');
       else {
         var f0=firstT[0];
-        if(!/first\s*task/i.test(f0.title)) add('warn','First task misspelled','The first task is labelled \u201c'+f0.title.slice(0,40)+'\u2026\u201d \u2014 expected \u201c[FIRST TASK]\u201d.');
         if(!f0.fixed) add('error','First task is Flex','The first task is listed as '+typeLabel(f0)+'; it must be Non-Flex at the tech\u2019s start time.');
         else {
           var earlier=fixed.filter(function(x){ return x!==f0 && x.start<f0.start; });
